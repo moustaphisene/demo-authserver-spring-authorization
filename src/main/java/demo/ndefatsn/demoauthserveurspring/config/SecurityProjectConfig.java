@@ -112,17 +112,25 @@ public class SecurityProjectConfig {
         public RegisteredClientRepository registeredClientRepository() {
             RegisteredClient clientCredClient = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId("senebankapi")
-                    .clientSecret("{noop}5eXzjHK4wTj0UyBRi5bXSV0DjKsUiKXM")
+                    .clientSecret("{noop}VxubZgAXyyTq9lGjj3qGvWNsHtE4SqTq")
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                    .scopes(scopeConfig -> scopeConfig.addAll(List.of(OidcScopes.OPENID,"ADMIN","USER")))
+                    .scopes(scopeConfig -> scopeConfig.addAll(List.of(OidcScopes.OPENID, "ADMIN", "USER")))
                     .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
-                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
-                    .build();
+                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
+
+            RegisteredClient introspectClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("sendbankintrospect")
+                    .clientSecret("{noop}c1BK9Bg2REeydBbvUoUeKCbD2bvJzXGj")
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                    .scopes(scopeConfig -> scopeConfig.addAll(List.of(OidcScopes.OPENID)))
+                    .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                            .accessTokenFormat(OAuth2TokenFormat.REFERENCE).build()).build();
 
             RegisteredClient authCodeClient = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId("senebankclient")
-                    .clientSecret("{noop}5eXzjHK4wTj0UyBRi5bXSV0DjKsUiKND")
+                    .clientSecret("{noop}Qw3rTy6UjMnB9zXcV2pL0sKjHn5TxQDF")
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
@@ -131,12 +139,12 @@ public class SecurityProjectConfig {
                     .scope(OidcScopes.OPENID).scope(OidcScopes.EMAIL)
                     .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
                             .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
-                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
-                    .build();
+                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
 
-            RegisteredClient pkceClient  = RegisteredClient.withId(UUID.randomUUID().toString())
+            RegisteredClient pkceClient = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId("senebankpkce")
                     .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .redirectUri("https://oauth.pstmn.io/v1/callback")
@@ -144,11 +152,10 @@ public class SecurityProjectConfig {
                     .clientSettings(ClientSettings.builder().requireProofKey(true).build())
                     .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
                             .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
-                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
-                    .build();
+                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build()).build();
 
 
-            return new InMemoryRegisteredClientRepository(clientCredClient, authCodeClient, pkceClient);
+            return new InMemoryRegisteredClientRepository(clientCredClient,introspectClient, authCodeClient, pkceClient);
         }
 
         @Bean
