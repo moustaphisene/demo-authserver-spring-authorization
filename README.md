@@ -85,13 +85,13 @@ La KeyPair est une paire de clés publique et privée utilisée pour créer le J
 - Utilisation
   Une fois l'application démarrée, vous pouvez utiliser les endpoints OAuth 2.1 pour obtenir des jetons d'accès et les utiliser pour accéder aux ressources protégées.
 
-  - Endpoints disponibles
+  - Endpoints or URIs disponibles
 
-          /oauth2/authorize : Point de terminaison pour l'autorisation.
-          /oauth2/token : Point de terminaison pour obtenir un jeton d'accès.
-          /oauth2/jwks : Point de terminaison pour obtenir les clés JWK.
-          /userinfo : Point de terminaison pour obtenir les informations de l'utilisateur.
-          /.well-known/openid-configuration : Point de terminaison pour obtenir la configuration OpenID Connect.
+          http://localhost:9000/oauth2/authorize : Point de terminaison pour l'autorisation.
+          http://localhost:9000/oauth2/token : Point de terminaison pour obtenir un jeton d'accès.
+          http://localhost:9000/oauth2/jwks : Point de terminaison pour obtenir les clés JWK.
+          http://localhost:9000/userinfo : Point de terminaison pour obtenir les informations de l'utilisateur.
+          http://localhost:9000/.well-known/openid-configuration : Point de terminaison pour obtenir la configuration OpenID Connect.
 
 - Personnalisation
 Vous pouvez personnaliser la configuration en modifiant les beans définis dans la classe principale de l'application. Par exemple, vous pouvez ajouter des utilisateurs supplémentaires, des clients enregistrés, ou des scopes.
