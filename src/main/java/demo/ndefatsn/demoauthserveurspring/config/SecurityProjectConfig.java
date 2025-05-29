@@ -46,30 +46,24 @@ public class SecurityProjectConfig {
         @Order(1)
         public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
                 throws Exception {
-            OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
-                    OAuth2AuthorizationServerConfigurer.authorizationServer();
-
+            OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
+            http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
+                    .oidc(Customizer.withDefaults());    // Enable OpenID Connect 1.0
             http
-                    .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
-                    .with(authorizationServerConfigurer, (authorizationServer) ->
-                            authorizationServer
-                                    .oidc(Customizer.withDefaults())	// Enable OpenID Connect 1.0
-                    )
-                    .authorizeHttpRequests((authorize) ->
-                            authorize
-                                    .anyRequest().authenticated()
-                    )
-                    // Redirect to the login page when not authenticated from the
-                    // authorization endpoint
+                    //Redirect to the login page when not authenticated from the authorization endpoint
                     .exceptionHandling((exceptions) -> exceptions
                             .defaultAuthenticationEntryPointFor(
                                     new LoginUrlAuthenticationEntryPoint("/login"),
                                     new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                             )
-                    );
-
+                    )
+                    //Accept access token for User information and/or Client registration
+                    .oauth2ResourceServer((resourceServer) -> resourceServer
+                            .jwt(Customizer.withDefaults()));
             return http.build();
         }
+
+
 
         @Bean
         @Order(2)
@@ -86,16 +80,16 @@ public class SecurityProjectConfig {
             return http.build();
         }
 
-        @Bean
-        public UserDetailsService userDetailsService() {
-            UserDetails userDetails = User.withDefaultPasswordEncoder()
-                    .username("user")
-                    .password("password")
-                    .roles("USER")
-                    .build();
-
-            return new InMemoryUserDetailsManager(userDetails);
-        }
+//        @Bean
+//        public UserDetailsService userDetailsService() {
+//            UserDetails userDetails = User.withDefaultPasswordEncoder()
+//                    .username("user")
+//                    .password("password")
+//                    .roles("USER")
+//                    .build();
+//
+//            return new InMemoryUserDetailsManager(userDetails);
+//        }
 
         @Bean
         public RegisteredClientRepository registeredClientRepository() {
