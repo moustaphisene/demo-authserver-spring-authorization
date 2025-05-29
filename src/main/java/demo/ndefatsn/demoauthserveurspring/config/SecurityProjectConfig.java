@@ -6,16 +6,21 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import demo.ndefatsn.demoauthserveurspring.model.Authority;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.password.CompromisedPasswordChecker;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.OAuth2Token;
@@ -36,6 +41,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 import java.security.KeyPair;
@@ -43,9 +49,11 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -112,7 +120,35 @@ public class SecurityProjectConfig {
                             .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
                     .build();
 
-            return new InMemoryRegisteredClientRepository(clientCredClient);
+            RegisteredClient authCodeClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("senebankclient")
+                    .clientSecret("{noop}5eXzjHK4wTj0UyBRi5bXSV0DjKsUiKND")
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .scope(OidcScopes.OPENID).scope(OidcScopes.EMAIL)
+                    .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                            .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
+                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
+                    .build();
+
+            RegisteredClient pkceClient  = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("senebankpkce")
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .scope(OidcScopes.OPENID).scope(OidcScopes.EMAIL)
+                    .clientSettings(ClientSettings.builder().requireProofKey(true).build())
+                    .tokenSettings(TokenSettings.builder().accessTokenTimeToLive(Duration.ofMinutes(10))
+                            .refreshTokenTimeToLive(Duration.ofHours(8)).reuseRefreshTokens(false)
+                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED).build())
+                    .build();
+
+
+            return new InMemoryRegisteredClientRepository(clientCredClient, authCodeClient, pkceClient);
         }
 
         @Bean
@@ -155,13 +191,34 @@ public class SecurityProjectConfig {
         public OAuth2TokenCustomizer <JwtEncodingContext> jwtTokenCustomizer() {
            return  (context) ->{
                if (context.getTokenType().equals(OAuth2TokenType.ACCESS_TOKEN)) {
-                   context.getClaims().claims((claims)->{
+                   context.getClaims().claims((claims)-> {
+                       if (context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)) {
                        Set<String> roles = context.getClaims().build().getClaim("scope");
-                       claims.put("roles",roles);
+                       claims.put("roles", roles);
+                   }else if(context.getAuthorizationGrantType().equals(AuthorizationGrantType.AUTHORIZATION_CODE)) {
+                           Set<String> roles = AuthorityUtils.authorityListToSet(context.getPrincipal().getAuthorities())
+                                   .stream()
+                                   .map(c->c.replaceFirst("^ROLE_",""))
+                                   .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet));
+                           claims.put("roles", roles);
+
+
+                   }
                    });
                }
            };
         }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
+
+    @Bean
+    public CompromisedPasswordChecker compromisedPasswordChecker() {
+        return new HaveIBeenPwnedRestApiPasswordChecker();
+    }
 
     }
 
